@@ -1,0 +1,1327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Sales Analytics Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        :root {
+            --primary: #4361ee;
+            --primary-dark: #3a56d4;
+            --secondary: #7209b7;
+            --success: #06d6a0;
+            --warning: #ffd166;
+            --danger: #ef476f;
+            --dark: #1e1e2e;
+            --dark-light: #252536;
+            --light: #f8f9fa;
+            --gray: #8b8b9e;
+            --border: #2d2d3e;
+            --card-bg: #252536;
+            --hover-bg: #2d2d3e;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        body {
+            background: var(--dark);
+            color: var(--light);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .dashboard-container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+
+        .header {
+            background: var(--dark-light);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            animation: slideDown 0.6s ease-out;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo-icon {
+            width: 3rem;
+            height: 3rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.25rem;
+        }
+
+        .logo-text h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.25rem;
+        }
+
+        .logo-text p {
+            font-size: 0.75rem;
+            color: var(--gray);
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 1.5rem;
+            align-items: center;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .control-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--gray);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .select-wrapper {
+            position: relative;
+        }
+
+        .custom-select {
+            appearance: none;
+            background: var(--dark);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.5rem 2rem 0.5rem 0.75rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--light);
+            cursor: pointer;
+            transition: all 0.2s;
+            min-width: 120px;
+        }
+
+        .custom-select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+        }
+
+        .select-wrapper::after {
+            content: '\f107';
+            font-family: 'Font Awesome 5 Free';
+            font-weight: 900;
+            position: absolute;
+            right: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+            color: var(--gray);
+        }
+
+        .filters-panel {
+            background: var(--dark-light);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+            animation: slideUp 0.6s ease-out;
+        }
+
+        .filters-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .filters-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--light);
+        }
+
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .search-input {
+            background: var(--dark);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.875rem;
+            color: var(--light);
+            transition: all 0.2s;
+            width: 100%;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+        }
+
+        .actions-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .upload-section {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            box-shadow: var(--shadow);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-secondary {
+            background: var(--dark);
+            color: var(--light);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--hover-bg);
+            transform: translateY(-1px);
+        }
+
+        .file-status {
+            font-size: 0.75rem;
+            color: var(--gray);
+            font-style: italic;
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .kpi-card {
+            background: var(--dark-light);
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            animation: fadeInScale 0.6s ease-out;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+        }
+
+        .kpi-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .kpi-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--gray);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .kpi-icon {
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+        }
+
+        .kpi-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--light);
+            margin-bottom: 0.5rem;
+            line-height: 1;
+        }
+
+        .kpi-change {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .trend-positive {
+            color: var(--success);
+        }
+
+        .trend-negative {
+            color: var(--danger);
+        }
+
+        .charts-section {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .chart-card {
+            background: var(--dark-light);
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            animation: slideUp 0.8s ease-out;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .chart-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--light);
+        }
+
+        .chart-controls {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .chart-btn {
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            background: var(--dark);
+            color: var(--gray);
+            transition: all 0.2s;
+        }
+
+        .chart-btn.active {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border-color: transparent;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+
+        .data-table-section {
+            background: var(--dark-light);
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            animation: slideUp 1s ease-out;
+        }
+
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .data-table th {
+            background: var(--dark);
+            font-weight: 600;
+            color: var(--gray);
+            cursor: pointer;
+            position: relative;
+        }
+
+        .data-table th:hover {
+            background: var(--hover-bg);
+        }
+
+        .data-table th.sortable::after {
+            content: '\f0dc';
+            font-family: 'Font Awesome 5 Free';
+            font-weight: 900;
+            position: absolute;
+            right: 0.5rem;
+            color: var(--gray);
+            opacity: 0.5;
+        }
+
+        .data-table th.sort-asc::after {
+            content: '\f0de';
+            opacity: 1;
+        }
+
+        .data-table th.sort-desc::after {
+            content: '\f0dd';
+            opacity: 1;
+        }
+
+        .data-table tr:hover {
+            background: var(--hover-bg);
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-active {
+            background: rgba(6, 214, 160, 0.15);
+            color: var(--success);
+        }
+
+        .status-pending {
+            background: rgba(255, 209, 102, 0.15);
+            color: var(--warning);
+        }
+
+        .status-closed {
+            background: rgba(239, 71, 111, 0.15);
+            color: var(--danger);
+        }
+
+        .footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--gray);
+            font-size: 0.875rem;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-2rem);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(2rem);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInScale {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        @media (max-width: 1024px) {
+            .charts-section {
+                grid-template-columns: 1fr;
+            }
+            
+            .header {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .header-controls {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-container {
+                padding: 0.5rem;
+            }
+            
+            .actions-bar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .kpi-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .filters-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .kpi-value {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <header class="header">
+            <div class="logo-section">
+                <div class="logo-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div class="logo-text">
+                    <h1>Sales Analytics Pro</h1>
+                    <p>Advanced Business Intelligence Platform</p>
+                </div>
+            </div>
+            
+            <div class="header-controls">
+                <div class="control-group">
+                    <label class="control-label">Time Period</label>
+                    <div class="select-wrapper">
+                        <select id="period-select" class="custom-select">
+                            <option value="7">Last 7 Days</option>
+                            <option value="30" selected>Last 30 Days</option>
+                            <option value="90">Last 90 Days</option>
+                            <option value="365">Last Year</option>
+                            <option value="custom">Custom Range</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <label class="control-label">View Mode</label>
+                    <div class="select-wrapper">
+                        <select id="view-mode" class="custom-select">
+                            <option value="overview">Overview</option>
+                            <option value="detailed">Detailed</option>
+                            <option value="trends">Trends Only</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="filters-panel">
+            <div class="filters-header">
+                <h3 class="filters-title">
+                    <i class="fas fa-filter"></i>
+                    Advanced Filters
+                </h3>
+            </div>
+            
+            <div class="filters-grid">
+                <div class="control-group">
+                    <label class="control-label">Search</label>
+                    <input type="text" class="search-input" placeholder="Search by customer, product, region..." id="global-search">
+                </div>
+                
+                <div class="control-group">
+                    <label class="control-label">Sales Channel</label>
+                    <div class="select-wrapper">
+                        <select id="channel-filter" class="custom-select">
+                            <option value="all">All Channels</option>
+                            <option value="website">Website</option>
+                            <option value="email">Email Marketing</option>
+                            <option value="social">Social Media</option>
+                            <option value="referral">Referral</option>
+                            <option value="direct">Direct Sales</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <label class="control-label">Region</label>
+                    <div class="select-wrapper">
+                        <select id="region-filter" class="custom-select">
+                            <option value="all">All Regions</option>
+                            <option value="north-america">North America</option>
+                            <option value="europe">Europe</option>
+                            <option value="asia-pacific">Asia Pacific</option>
+                            <option value="latin-america">Latin America</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <label class="control-label">Deal Status</label>
+                    <div class="select-wrapper">
+                        <select id="status-filter" class="custom-select">
+                            <option value="all">All Status</option>
+                            <option value="active">Active</option>
+                            <option value="pending">Pending</option>
+                            <option value="closed">Closed</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="actions-bar">
+            <div class="upload-section">
+                <input type="file" id="file-input" accept=".xlsx,.xls,.csv" style="display: none;">
+                <button class="btn btn-primary" onclick="document.getElementById('file-input').click()">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    Import Data
+                </button>
+                <span id="file-status" class="file-status">No file selected</span>
+            </div>
+            
+            <div class="upload-section">
+                <button class="btn btn-secondary" id="export-pdf">
+                    <i class="fas fa-file-pdf"></i>
+                    Export PDF
+                </button>
+                <button class="btn btn-secondary" id="export-excel">
+                    <i class="fas fa-file-excel"></i>
+                    Export Excel
+                </button>
+                <button class="btn btn-secondary" id="refresh-data">
+                    <i class="fas fa-sync-alt"></i>
+                    Refresh
+                </button>
+            </div>
+        </div>
+
+        <div class="kpi-grid">
+            <div class="kpi-card" style="animation-delay: 0.1s">
+                <div class="kpi-header">
+                    <span class="kpi-title">Total Sales Volume</span>
+                    <div class="kpi-icon">
+                        <i class="fas fa-dollar-sign"></i>
+                    </div>
+                </div>
+                <div class="kpi-value" id="sales-volume">$428,560</div>
+                <div class="kpi-change trend-positive">
+                    <i class="fas fa-trending-up"></i>
+                    <span>+18.4% vs previous period</span>
+                </div>
+            </div>
+
+            <div class="kpi-card" style="animation-delay: 0.2s">
+                <div class="kpi-header">
+                    <span class="kpi-title">Conversion Rate</span>
+                    <div class="kpi-icon">
+                        <i class="fas fa-percentage"></i>
+                    </div>
+                </div>
+                <div class="kpi-value" id="conversion-rate">28.7%</div>
+                <div class="kpi-change trend-positive">
+                    <i class="fas fa-trending-up"></i>
+                    <span>+4.2% vs previous period</span>
+                </div>
+            </div>
+
+            <div class="kpi-card" style="animation-delay: 0.3s">
+                <div class="kpi-header">
+                    <span class="kpi-title">Total Leads</span>
+                    <div class="kpi-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                </div>
+                <div class="kpi-value" id="total-leads">15,847</div>
+                <div class="kpi-change trend-negative">
+                    <i class="fas fa-trending-down"></i>
+                    <span>-2.8% vs previous period</span>
+                </div>
+            </div>
+
+            <div class="kpi-card" style="animation-delay: 0.4s">
+                <div class="kpi-header">
+                    <span class="kpi-title">Avg Deal Size</span>
+                    <div class="kpi-icon">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                </div>
+                <div class="kpi-value" id="avg-deal-size">$2,847</div>
+                <div class="kpi-change trend-positive">
+                    <i class="fas fa-trending-up"></i>
+                    <span>+12.1% vs previous period</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="charts-section">
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3 class="chart-title">Sales Performance Trend</h3>
+                    <div class="chart-controls">
+                        <button class="chart-btn active" data-chart="sales">Revenue</button>
+                        <button class="chart-btn" data-chart="volume">Volume</button>
+                        <button class="chart-btn" data-chart="conversion">Conversion</button>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="main-chart"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3 class="chart-title">Channel Performance</h3>
+                    <div class="chart-controls">
+                        <button class="chart-btn active" data-type="doughnut">Pie</button>
+                        <button class="chart-btn" data-type="bar">Bar</button>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="channel-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="data-table-section">
+            <div class="table-header">
+                <h3 class="chart-title">Recent Sales Data</h3>
+                <div class="chart-controls">
+                    <button class="chart-btn" id="add-sample-data">Add Sample Data</button>
+                    <button class="chart-btn" id="clear-data">Clear All</button>
+                </div>
+            </div>
+            
+            <div style="overflow-x: auto;">
+                <table class="data-table" id="sales-table">
+                    <thead>
+                        <tr>
+                            <th class="sortable" data-column="date">Date</th>
+                            <th class="sortable" data-column="customer">Customer</th>
+                            <th class="sortable" data-column="channel">Channel</th>
+                            <th class="sortable" data-column="region">Region</th>
+                            <th class="sortable" data-column="amount">Amount</th>
+                            <th class="sortable" data-column="status">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <footer class="footer">
+            <p>Advanced Sales Analytics Dashboard © 2024 | Empowering Data-Driven Decisions</p>
+        </footer>
+    </div>
+
+    <script>
+        class SalesAnalyticsDashboard {
+            constructor() {
+                this.data = [];
+                this.filteredData = [];
+                this.charts = {};
+                this.sortColumn = null;
+                this.sortDirection = 'asc';
+                
+                this.initializeEventListeners();
+                this.initializeCharts();
+                this.generateSampleData();
+            }
+
+            initializeEventListeners() {
+                document.getElementById('file-input').addEventListener('change', (e) => this.handleFileUpload(e));
+                document.getElementById('period-select').addEventListener('change', (e) => this.updatePeriod(e.target.value));
+                document.getElementById('global-search').addEventListener('input', (e) => this.filterData());
+                document.getElementById('channel-filter').addEventListener('change', () => this.filterData());
+                document.getElementById('region-filter').addEventListener('change', () => this.filterData());
+                document.getElementById('status-filter').addEventListener('change', () => this.filterData());
+                document.getElementById('add-sample-data').addEventListener('click', () => this.generateSampleData());
+                document.getElementById('clear-data').addEventListener('click', () => this.clearData());
+                document.getElementById('refresh-data').addEventListener('click', () => this.refreshData());
+
+                document.querySelectorAll('.chart-btn[data-chart]').forEach(btn => {
+                    btn.addEventListener('click', (e) => this.switchChartView(e.target.dataset.chart));
+                });
+
+                document.querySelectorAll('.chart-btn[data-type]').forEach(btn => {
+                    btn.addEventListener('click', (e) => this.switchChannelChart(e.target.dataset.type));
+                });
+
+                document.querySelectorAll('.sortable').forEach(th => {
+                    th.addEventListener('click', (e) => this.sortTable(e.target.dataset.column));
+                });
+            }
+
+            generateSampleData() {
+                const channels = ['website', 'email', 'social', 'referral', 'direct'];
+                const regions = ['north-america', 'europe', 'asia-pacific', 'latin-america'];
+                const statuses = ['active', 'pending', 'closed'];
+                const customers = ['Acme Corp', 'TechStart Inc', 'Global Solutions', 'Innovation Labs', 'Future Systems', 'Smart Business', 'Digital Dynamics', 'Advanced Tech'];
+
+                for (let i = 0; i < 50; i++) {
+                    const date = new Date();
+                    date.setDate(date.getDate() - Math.floor(Math.random() * 90));
+                    
+                    this.data.push({
+                        id: Date.now() + i,
+                        date: date.toISOString().split('T')[0],
+                        customer: customers[Math.floor(Math.random() * customers.length)],
+                        channel: channels[Math.floor(Math.random() * channels.length)],
+                        region: regions[Math.floor(Math.random() * regions.length)],
+                        amount: Math.floor(Math.random() * 10000) + 1000,
+                        status: statuses[Math.floor(Math.random() * statuses.length)]
+                    });
+                }
+
+                this.filterData();
+                this.updateCharts();
+                this.updateKPIs();
+            }
+
+            filterData() {
+                const search = document.getElementById('global-search').value.toLowerCase();
+                const channelFilter = document.getElementById('channel-filter').value;
+                const regionFilter = document.getElementById('region-filter').value;
+                const statusFilter = document.getElementById('status-filter').value;
+
+                this.filteredData = this.data.filter(item => {
+                    const matchesSearch = !search || 
+                        item.customer.toLowerCase().includes(search) ||
+                        item.channel.toLowerCase().includes(search) ||
+                        item.region.toLowerCase().includes(search);
+                    
+                    const matchesChannel = channelFilter === 'all' || item.channel === channelFilter;
+                    const matchesRegion = regionFilter === 'all' || item.region === regionFilter;
+                    const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
+
+                    return matchesSearch && matchesChannel && matchesRegion && matchesStatus;
+                });
+
+                this.renderTable();
+                this.updateCharts();
+                this.updateKPIs();
+            }
+
+            handleFileUpload(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                document.getElementById('file-status').textContent = `Processing: ${file.name}`;
+                
+                if (file.name.endsWith('.csv')) {
+                    Papa.parse(file, {
+                        header: true,
+                        complete: (results) => {
+                            this.processUploadedData(results.data);
+                            document.getElementById('file-status').textContent = `Loaded: ${file.name} (${results.data.length} records)`;
+                        }
+                    });
+                } else {
+                    document.getElementById('file-status').textContent = `Error: Please upload CSV files only`;
+                }
+            }
+
+            processUploadedData(csvData) {
+                this.data = csvData.map((row, index) => ({
+                    id: Date.now() + index,
+                    date: row.date || new Date().toISOString().split('T')[0],
+                    customer: row.customer || row.Customer || 'Unknown',
+                    channel: (row.channel || row.Channel || 'direct').toLowerCase(),
+                    region: (row.region || row.Region || 'north-america').toLowerCase(),
+                    amount: parseFloat(row.amount || row.Amount || row.Revenue || 0),
+                    status: (row.status || row.Status || 'active').toLowerCase()
+                })).filter(item => item.amount > 0);
+
+                this.filterData();
+            }
+
+            initializeCharts() {
+                const ctx1 = document.getElementById('main-chart').getContext('2d');
+                this.charts.main = new Chart(ctx1, {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            label: 'Revenue ($)',
+                            data: [],
+                            borderColor: '#4361ee',
+                            backgroundColor: 'rgba(67, 97, 238, 0.1)',
+                            borderWidth: 3,
+                            tension: 0.4,
+                            fill: true,
+                            pointBackgroundColor: '#4361ee',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            pointRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                titleColor: '#fff',
+                                bodyColor: '#fff',
+                                cornerRadius: 8,
+                                displayColors: false
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                                ticks: {
+                                    color: '#8b8b9e',
+                                    callback: function(value) {
+                                        return '$' + value.toLocaleString();
+                                    }
+                                }
+                            },
+                            x: {
+                                grid: { display: false },
+                                ticks: {
+                                    color: '#8b8b9e'
+                                }
+                            }
+                        }
+                    }
+                });
+
+                const ctx2 = document.getElementById('channel-chart').getContext('2d');
+                this.charts.channel = new Chart(ctx2, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Website', 'Email', 'Social', 'Referral', 'Direct'],
+                        datasets: [{
+                            data: [0, 0, 0, 0, 0],
+                            backgroundColor: [
+                                '#4361ee',
+                                '#7209b7',
+                                '#06d6a0',
+                                '#ffd166',
+                                '#ef476f'
+                            ],
+                            borderWidth: 0,
+                            hoverOffset: 10
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    padding: 20,
+                                    usePointStyle: true,
+                                    color: '#f8f9fa'
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                titleColor: '#fff',
+                                bodyColor: '#fff',
+                                cornerRadius: 8
+                            }
+                        }
+                    }
+                });
+            }
+
+            updateCharts() {
+                if (this.filteredData.length === 0) return;
+
+                const dailyData = this.aggregateDailyData();
+                const channelData = this.aggregateChannelData();
+
+                this.charts.main.data.labels = Object.keys(dailyData);
+                this.charts.main.data.datasets[0].data = Object.values(dailyData);
+                this.charts.main.update('active');
+
+                this.charts.channel.data.datasets[0].data = [
+                    channelData.website || 0,
+                    channelData.email || 0,
+                    channelData.social || 0,
+                    channelData.referral || 0,
+                    channelData.direct || 0
+                ];
+                this.charts.channel.update('active');
+            }
+
+            aggregateDailyData() {
+                const dailyData = {};
+                const last30Days = new Date();
+                last30Days.setDate(last30Days.getDate() - 30);
+
+                for (let i = 0; i < 30; i++) {
+                    const date = new Date(last30Days);
+                    date.setDate(date.getDate() + i);
+                    const dateStr = date.toISOString().split('T')[0];
+                    dailyData[dateStr] = 0;
+                }
+
+                this.filteredData.forEach(item => {
+                    if (dailyData.hasOwnProperty(item.date)) {
+                        dailyData[item.date] += item.amount;
+                    }
+                });
+
+                return dailyData;
+            }
+
+            aggregateChannelData() {
+                const channelData = {};
+                this.filteredData.forEach(item => {
+                    channelData[item.channel] = (channelData[item.channel] || 0) + item.amount;
+                });
+                return channelData;
+            }
+
+            updateKPIs() {
+                const totalSales = this.filteredData.reduce((sum, item) => sum + item.amount, 0);
+                const totalLeads = this.filteredData.length;
+                const avgDealSize = totalLeads > 0 ? totalSales / totalLeads : 0;
+                const conversionRate = totalLeads > 0 ? (this.filteredData.filter(item => item.status === 'closed').length / totalLeads) * 100 : 0;
+
+                document.getElementById('sales-volume').textContent = '$' + totalSales.toLocaleString();
+                document.getElementById('total-leads').textContent = totalLeads.toLocaleString();
+                document.getElementById('avg-deal-size').textContent = '$' + Math.round(avgDealSize).toLocaleString();
+                document.getElementById('conversion-rate').textContent = conversionRate.toFixed(1) + '%';
+            }
+
+            renderTable() {
+                const tbody = document.getElementById('table-body');
+                tbody.innerHTML = '';
+
+                const displayData = this.filteredData.slice(0, 20);
+                
+                displayData.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${new Date(item.date).toLocaleDateString()}</td>
+                        <td>${item.customer}</td>
+                        <td><span class="status-badge" style="background: rgba(67, 97, 238, 0.15); color: #4361ee;">${item.channel}</span></td>
+                        <td>${item.region.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}</td>
+                        <td>$${item.amount.toLocaleString()}</td>
+                        <td><span class="status-badge status-${item.status}">${item.status}</span></td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+
+            sortTable(column) {
+                if (this.sortColumn === column) {
+                    this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+                } else {
+                    this.sortColumn = column;
+                    this.sortDirection = 'asc';
+                }
+
+                document.querySelectorAll('.sortable').forEach(th => {
+                    th.classList.remove('sort-asc', 'sort-desc');
+                });
+
+                const clickedHeader = document.querySelector(`[data-column="${column}"]`);
+                clickedHeader.classList.add(`sort-${this.sortDirection}`);
+
+                this.filteredData.sort((a, b) => {
+                    let aVal = a[column];
+                    let bVal = b[column];
+
+                    if (column === 'amount') {
+                        aVal = parseFloat(aVal);
+                        bVal = parseFloat(bVal);
+                    } else if (column === 'date') {
+                        aVal = new Date(aVal);
+                        bVal = new Date(bVal);
+                    } else {
+                        aVal = aVal.toString().toLowerCase();
+                        bVal = bVal.toString().toLowerCase();
+                    }
+
+                    if (this.sortDirection === 'asc') {
+                        return aVal > bVal ? 1 : -1;
+                    } else {
+                        return aVal < bVal ? 1 : -1;
+                    }
+                });
+
+                this.renderTable();
+            }
+
+            switchChartView(chartType) {
+                document.querySelectorAll('.chart-btn[data-chart]').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                document.querySelector(`[data-chart="${chartType}"]`).classList.add('active');
+
+                let data, label, color;
+                switch(chartType) {
+                    case 'sales':
+                        data = Object.values(this.aggregateDailyData());
+                        label = 'Revenue ($)';
+                        color = '#4361ee';
+                        break;
+                    case 'volume':
+                        const volumeData = this.aggregateDailyVolume();
+                        data = Object.values(volumeData);
+                        label = 'Deals Count';
+                        color = '#7209b7';
+                        break;
+                    case 'conversion':
+                        const conversionData = this.aggregateDailyConversion();
+                        data = Object.values(conversionData);
+                        label = 'Conversion Rate (%)';
+                        color = '#06d6a0';
+                        break;
+                }
+
+                this.charts.main.data.datasets[0].data = data;
+                this.charts.main.data.datasets[0].label = label;
+                this.charts.main.data.datasets[0].borderColor = color;
+                this.charts.main.data.datasets[0].backgroundColor = color + '20';
+                this.charts.main.update('active');
+            }
+
+            aggregateDailyVolume() {
+                const dailyVolume = {};
+                const last30Days = new Date();
+                last30Days.setDate(last30Days.getDate() - 30);
+
+                for (let i = 0; i < 30; i++) {
+                    const date = new Date(last30Days);
+                    date.setDate(date.getDate() + i);
+                    const dateStr = date.toISOString().split('T')[0];
+                    dailyVolume[dateStr] = 0;
+                }
+
+                this.filteredData.forEach(item => {
+                    if (dailyVolume.hasOwnProperty(item.date)) {
+                        dailyVolume[dateStr]++;
+                    }
+                });
+
+                return dailyVolume;
+            }
+
+            aggregateDailyConversion() {
+                const dailyConversion = {};
+                const dailyVolume = this.aggregateDailyVolume();
+
+                Object.keys(dailyVolume).forEach(date => {
+                    const totalDeals = dailyVolume[date];
+                    const closedDeals = this.filteredData.filter(item => 
+                        item.date === date && item.status === 'closed'
+                    ).length;
+                    
+                    dailyConversion[date] = totalDeals > 0 ? (closedDeals / totalDeals) * 100 : 0;
+                });
+
+                return dailyConversion;
+            }
+
+            switchChannelChart(chartType) {
+                document.querySelectorAll('.chart-btn[data-type]').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                document.querySelector(`[data-type="${chartType}"]`).classList.add('active');
+
+                this.charts.channel.destroy();
+                
+                const ctx = document.getElementById('channel-chart').getContext('2d');
+                this.charts.channel = new Chart(ctx, {
+                    type: chartType,
+                    data: {
+                        labels: ['Website', 'Email', 'Social', 'Referral', 'Direct'],
+                        datasets: [{
+                            data: [
+                                this.aggregateChannelData().website || 0,
+                                this.aggregateChannelData().email || 0,
+                                this.aggregateChannelData().social || 0,
+                                this.aggregateChannelData().referral || 0,
+                                this.aggregateChannelData().direct || 0
+                            ],
+                            backgroundColor: [
+                                '#4361ee',
+                                '#7209b7',
+                                '#06d6a0',
+                                '#ffd166',
+                                '#ef476f'
+                            ],
+                            borderWidth: chartType === 'doughnut' ? 0 : 1,
+                            hoverOffset: chartType === 'doughnut' ? 10 : 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: chartType === 'doughnut' ? 'bottom' : 'top',
+                                labels: {
+                                    padding: 20,
+                                    usePointStyle: true,
+                                    color: '#f8f9fa'
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                titleColor: '#fff',
+                                bodyColor: '#fff',
+                                cornerRadius: 8,
+                                callbacks: {
+                                    label: function(context) {
+                                        return context.label + ': $' + context.parsed.toLocaleString();
+                                    }
+                                }
+                            }
+                        },
+                        scales: chartType === 'bar' ? {
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                                ticks: {
+                                    color: '#8b8b9e',
+                                    callback: function(value) {
+                                        return '$' + value.toLocaleString();
+                                    }
+                                }
+                            },
+                            x: {
+                                grid: { display: false },
+                                ticks: {
+                                    color: '#8b8b9e'
+                                }
+                            }
+                        } : {}
+                    }
+                });
+            }
+
+            updatePeriod(days) {
+                console.log(`Updating dashboard for ${days} days period`);
+                this.filterData();
+            }
+
+            clearData() {
+                this.data = [];
+                this.filteredData = [];
+                this.renderTable();
+                this.updateCharts();
+                this.updateKPIs();
+                document.getElementById('file-status').textContent = 'No file selected';
+            }
+
+            refreshData() {
+                const refreshBtn = document.getElementById('refresh-data');
+                const icon = refreshBtn.querySelector('i');
+                
+                icon.style.animation = 'spin 1s linear infinite';
+                
+                setTimeout(() => {
+                    this.filterData();
+                    icon.style.animation = '';
+                }, 1000);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            new SalesAnalyticsDashboard();
+        });
+
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes spin {
+                from { transform: rotate(0deg); }
+                to { transform: rotate(360deg); }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>
