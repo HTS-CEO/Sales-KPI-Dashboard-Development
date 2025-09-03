@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -821,6 +823,8 @@
                 document.getElementById('add-sample-data').addEventListener('click', () => this.generateSampleData());
                 document.getElementById('clear-data').addEventListener('click', () => this.clearData());
                 document.getElementById('refresh-data').addEventListener('click', () => this.refreshData());
+                document.getElementById('export-pdf').addEventListener('click', () => this.exportPDF());
+                document.getElementById('export-excel').addEventListener('click', () => this.exportExcel());
 
                 document.querySelectorAll('.chart-btn[data-chart]').forEach(btn => {
                     btn.addEventListener('click', (e) => this.switchChartView(e.target.dataset.chart));
@@ -1307,6 +1311,85 @@
                     this.filterData();
                     icon.style.animation = '';
                 }, 1000);
+            }
+
+            exportPDF() {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                doc.setFontSize(20);
+                doc.text('Sales Analytics Dashboard Report', 14, 22);
+                doc.setFontSize(12);
+                doc.setTextColor(100);
+                doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
+                
+                const totalSales = this.filteredData.reduce((sum, item) => sum + item.amount, 0);
+                const totalLeads = this.filteredData.length;
+                const avgDealSize = totalLeads > 0 ? totalSales / totalLeads : 0;
+                const conversionRate = totalLeads > 0 ? (this.filteredData.filter(item => item.status === 'closed').length / totalLeads) * 100 : 0;
+                
+                doc.setFontSize(14);
+                doc.setTextColor(0);
+                doc.text('Key Performance Indicators', 14, 45);
+                
+                doc.setFontSize(10);
+                doc.text(`Total Sales Volume: $${totalSales.toLocaleString()}`, 14, 55);
+                doc.text(`Conversion Rate: ${conversionRate.toFixed(1)}%`, 14, 62);
+                doc.text(`Total Leads: ${totalLeads.toLocaleString()}`, 14, 69);
+                doc.text(`Average Deal Size: $${Math.round(avgDealSize).toLocaleString()}`, 14, 76);
+                
+                const tableColumn = ["Date", "Customer", "Channel", "Region", "Amount", "Status"];
+                const tableRows = [];
+                
+                this.filteredData.slice(0, 20).forEach(item => {
+                    const rowData = [
+                        new Date(item.date).toLocaleDateString(),
+                        item.customer,
+                        item.channel,
+                        item.region,
+                        `$${item.amount.toLocaleString()}`,
+                        item.status
+                    ];
+                    tableRows.push(rowData);
+                });
+                
+                doc.autoTable({
+                    head: [tableColumn],
+                    body: tableRows,
+                    startY: 85,
+                    theme: 'grid',
+                    styles: { fontSize: 8 },
+                    headStyles: { fillColor: [67, 97, 238] }
+                });
+                
+                doc.save('sales-analytics-report.pdf');
+            }
+
+            exportExcel() {
+                let csvContent = "data:text/csv;charset=utf-8,";
+                
+                csvContent += "Date,Customer,Channel,Region,Amount,Status\n";
+                
+                this.filteredData.forEach(item => {
+                    const row = [
+                        new Date(item.date).toLocaleDateString(),
+                        `"${item.customer}"`,
+                        item.channel,
+                        item.region,
+                        item.amount,
+                        item.status
+                    ];
+                    csvContent += row.join(",") + "\n";
+                });
+                
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", "sales_data_export.csv");
+                document.body.appendChild(link);
+                
+                link.click();
+                document.body.removeChild(link);
             }
         }
 
